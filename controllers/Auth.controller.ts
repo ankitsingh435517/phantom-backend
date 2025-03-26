@@ -1,12 +1,12 @@
 import type { Request, Response } from "express";
-import type {
-  ILoginUserRequestBody,
-  ILoginUserResponse,
-} from "../types/requestResponse.types";
 import { validationResult } from "express-validator";
+import type { UserPayload } from "../types/service.types";
+import type { UserService } from "../services";
 
-class Auth {
-  async login(req: Request, res: Response) {
+class AuthController {
+  constructor(private userService: UserService) {}
+
+  async register(req: Request, res: Response) {
     try {
       // login a user
       // 1. validate the user input
@@ -24,12 +24,21 @@ class Auth {
         return;
       }
       // 2. check if user exists or not if not then return with error
-      const { firstName, lastName, username, email, password } =
-        req.body as ILoginUserRequestBody;
-        
-      // 3. create a jwt token (AuthToken entity) and tie it to this user
-      // 4. Set expiry like rotational with access & refresh token flow
-      // 5. set the token to the cookie and send the success response
+      const { firstName, lastName, username, email, password } = req.body as UserPayload;
+      
+      const doesUserExists = await this.userService.exists(username);
+
+      if (doesUserExists) {
+        throw new Error("User with that username already exists")
+      }
+
+      // -- auto IP ban for multiple failed login attempts & cool down
+
+      // 3. create a jwt token (AuthToken entity)
+
+      // 4. create the user (hash password) and link the user with access & refesh tokens
+      // 5. Set expiry like rotational with access & refresh token flow
+      // 6. set the token to the cookie and send the success response
       res.status(201).json({ success: true, message: "Login successful" });
     } catch (err) {
       res.status(500).json({
@@ -42,4 +51,4 @@ class Auth {
   }
 }
 
-export default Auth;
+export default AuthController;

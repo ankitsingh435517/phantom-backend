@@ -1,5 +1,5 @@
-import Auth from "./Auth.controller";
+import AuthController from "./Auth.controller";
 
 export {
-    Auth
+    AuthController
 }
