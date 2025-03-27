@@ -1,10 +1,15 @@
 import type { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import type { UserPayload } from "../types/service.types";
-import type { UserService } from "../services";
+import type { UserService, TokenService } from "../services";
+import bcrypt from "bcryptjs";
+import { SALT_ROUNDS } from "../config/dotenv";
 
 class AuthController {
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    private tokenService: TokenService
+  ) {}
 
   async register(req: Request, res: Response) {
     try {
@@ -24,20 +29,45 @@ class AuthController {
         return;
       }
       // 2. check if user exists or not if not then return with error
-      const { firstName, lastName, username, email, password } = req.body as UserPayload;
-      
+      const { firstName, lastName, username, email, password } =
+        req.body as UserPayload;
+
       const doesUserExists = await this.userService.exists(username);
 
       if (doesUserExists) {
-        throw new Error("User with that username already exists")
+        throw new Error("User with that username already exists");
       }
+      // 3. create the user (hash password) and link the user with access & refesh tokens
+      const hashedPassword = bcrypt.hashSync(password, SALT_ROUNDS as string);
 
-      // -- auto IP ban for multiple failed login attempts & cool down
+      const user = await this.userService.create({
+        firstName,
+        lastName,
+        username,
+        email,
+        password: hashedPassword,
+      });
 
-      // 3. create a jwt token (AuthToken entity)
+      const yearInMs = 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
 
-      // 4. create the user (hash password) and link the user with access & refesh tokens
+      // 4. create a jwt token (AuthToken entity)
+      const token = await this.tokenService.create({
+        userId: user._id,
+        expiresAt: new Date(Date.now() + yearInMs),
+        deviceInfo: {
+          ip: req.body.ip,
+          deviceName: req.body.deviceName,
+        },
+      });
+
+      const accessToken = this.tokenService.generateAccessToken(user._id);
+      const refreshToken = this.tokenService.generateRefreshToken(
+        user._id,
+        token._id
+      );
+
       // 5. Set expiry like rotational with access & refresh token flow
+
       // 6. set the token to the cookie and send the success response
       res.status(201).json({ success: true, message: "Login successful" });
     } catch (err) {

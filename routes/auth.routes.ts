@@ -1,14 +1,15 @@
 import express from "express";
 import { body } from "express-validator";
 import { AuthController } from "../controllers";
-import { UserService } from "../services";
+import { UserService, TokenService } from "../services";
 import { loginLimiter } from "../security/rateLimits";
 
 const router = express.Router();
 
 // init & dep inject (optional)
 const userService = new UserService();
-const authController = new AuthController(userService);
+const tokenService = new TokenService();
+const authController = new AuthController(userService, tokenService);
 
 router.post(
 	"/register",

@@ -1,5 +1,6 @@
 import winston from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
+import { NODE_ENV } from "./dotenv";
 
 const rotatingTransport = new DailyRotateFile({
     filename: "logs/app-%DATE%.log",
@@ -21,7 +22,7 @@ const logger = winston.createLogger({
 });
 
 // If in development, also log to console
-if (process.env.NODE_ENV !== "production") {
+if (NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
       format: winston.format.simple(),
