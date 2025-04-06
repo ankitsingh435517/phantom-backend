@@ -4,9 +4,11 @@ import cors from "cors";
 import allRoutes from "./routes";
 import mongoose from "mongoose";
 import helmet from "helmet";
-import { generalLimiter } from "./security/rateLimits";
+import { generalLimiter } from "./config/limitter";
 import { logger } from "./config";
-import { metricMiddleware, client } from "./security/metrics";
+import promBundle from "express-prom-bundle";
+
+const metricMiddleware = promBundle({ includeMethod: true });
 
 // cors and json
 const app = express();
@@ -24,9 +26,9 @@ app.use(generalLimiter);
 async function connectDB() {
   if (MONGO_URI) {
     await mongoose.connect(MONGO_URI);
-    logger.log("info", "Connected to MongoDB");
+    logger.info("Connected to MongoDB");
   } else {
-    logger.log("error", "Mongo connection uri not available!");
+    logger.error("Mongo connection uri not available!");
   }
 }
 
@@ -34,10 +36,6 @@ connectDB();
 
 // metrics
 app.use(metricMiddleware);
-app.get("/metrics", async (_, res) => {
-    res.set("Content-Type", client.register.contentType);
-    res.end(client.register.metrics);
-});
 
 // routes
 app.use(allRoutes);

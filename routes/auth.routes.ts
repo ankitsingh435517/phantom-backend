@@ -2,7 +2,7 @@ import express from "express";
 import { body } from "express-validator";
 import { AuthController } from "../controllers";
 import { UserService, TokenService } from "../services";
-import { loginLimiter } from "../security/rateLimits";
+import { loginLimiter } from "../config/limitter";
 
 const router = express.Router();
 
